@@ -22,6 +22,20 @@ public class UsuarioController {
     public Usuario guardar(@RequestBody Usuario usuario) {
         return repo.save(usuario);
     }
+    @PostMapping("/login")
+public Usuario login(@RequestBody Usuario credenciales) {
+    Usuario usuario = repo.findByUsernameAndPassword(
+            credenciales.getUsername(),
+            credenciales.getPassword()
+    );
+
+    if (usuario != null && "Activo".equalsIgnoreCase(usuario.getEstadoUsuario())) {
+        return usuario; 
+    } else {
+        return null;
+    }
+}
+
 
     @GetMapping("/{id}")
     public Usuario obtener(@PathVariable Long id) {
