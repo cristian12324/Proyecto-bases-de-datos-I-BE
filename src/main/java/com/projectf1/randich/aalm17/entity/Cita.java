@@ -36,7 +36,7 @@ public class Cita {
     private LocalDate fecha;
 
     @Column(name = "HORA")
-    private String hora;
+    private String hora; 
 
     @Column(name = "ESTADO")
     private String estado;
