@@ -4,6 +4,7 @@ import com.projectf1.randich.aalm17.entity.Usuario;
 import com.projectf1.randich.aalm17.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -18,24 +19,44 @@ public class UsuarioController {
         return repo.findAll();
     }
 
-    @PostMapping
-    public Usuario guardar(@RequestBody Usuario usuario) {
-        return repo.save(usuario);
-    }
     @PostMapping("/login")
-public Usuario login(@RequestBody Usuario credenciales) {
-    Usuario usuario = repo.findByUsernameAndPassword(
-            credenciales.getUsername(),
-            credenciales.getPassword()
-    );
+    public Usuario login(@RequestBody Usuario credenciales) {
+        Usuario usuario = repo.findByUsernameAndPasswordAndEstadoUsuario(
+                credenciales.getUsername(),
+                credenciales.getPassword(),
+                "Activo"
+        );
 
-    if (usuario != null && "Activo".equalsIgnoreCase(usuario.getEstadoUsuario())) {
-        return usuario; 
-    } else {
-        return null;
+        return usuario;
     }
-}
 
+    @PostMapping("/crear")
+    public Usuario crearUsuario(@RequestBody Usuario nuevoUsuario) {
+        if (nuevoUsuario.getRol() == null) {
+            throw new RuntimeException("Debe especificar un rol");
+        }
+
+        switch (nuevoUsuario.getRol()) {
+            case "Fisioterapeuta":
+                if (nuevoUsuario.getFisioterapeuta() == null) {
+                    throw new RuntimeException("Debe asociar un fisioterapeuta");
+                }
+                break;
+            case "Paciente":
+                if (nuevoUsuario.getPaciente() == null) {
+                    throw new RuntimeException("Debe asociar un paciente");
+                }
+                break;
+            case "Admin":
+                
+                break;
+            default:
+                throw new RuntimeException("Rol desconocido");
+        }
+
+        nuevoUsuario.setEstadoUsuario("Activo");
+        return repo.save(nuevoUsuario);
+    }
 
     @GetMapping("/{id}")
     public Usuario obtener(@PathVariable Long id) {

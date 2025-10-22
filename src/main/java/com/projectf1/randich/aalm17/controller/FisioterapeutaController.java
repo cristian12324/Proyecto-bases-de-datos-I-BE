@@ -1,9 +1,12 @@
 package com.projectf1.randich.aalm17.controller;
 
 import com.projectf1.randich.aalm17.entity.Fisioterapeuta;
+import com.projectf1.randich.aalm17.entity.Usuario;
 import com.projectf1.randich.aalm17.repository.FisioterapeutaRepository;
+import com.projectf1.randich.aalm17.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -13,9 +16,23 @@ public class FisioterapeutaController {
     @Autowired
     private FisioterapeutaRepository repo;
 
+    @Autowired
+    private UsuarioRepository usuarioRepo;
+
     @GetMapping
-    public List<Fisioterapeuta> listar() {
-        return repo.findAll();
+    public List<Fisioterapeuta> listar(@RequestParam Long idUsuario) {
+        Usuario usuario = usuarioRepo.findById(idUsuario).orElse(null);
+        if (usuario == null) return List.of();
+
+        if (usuario.esAdmin()) {
+            return repo.findAll();
+        } else if (usuario.esFisioterapeuta()) {
+            return repo.findById(usuario.getFisioterapeuta().getIdFisio())
+                       .map(List::of)
+                       .orElse(List.of());
+        } else {
+            return List.of(); // Paciente no ve fisioterapeutas
+        }
     }
 
     @PostMapping
