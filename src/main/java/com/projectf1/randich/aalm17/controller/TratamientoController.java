@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
+import com.projectf1.randich.aalm17.entity.Usuario;
+import com.projectf1.randich.aalm17.repository.UsuarioRepository;
+
 
 @RestController
 @RequestMapping("/api/tratamientos")
@@ -19,21 +22,38 @@ public class TratamientoController {
     @Autowired
     private CitaRepository citaRepo;
 
+    @Autowired
+private UsuarioRepository usuarioRepo;
+
+
     @GetMapping
     public List<Tratamiento> listar() {
-        return repo.findAll();
+        List<Tratamiento> tratamientos = repo.findAll();
+        tratamientos.forEach(t -> {
+            Cita cita = t.getCita();
+            if (cita != null) {
+                cita.getPaciente();
+                cita.getServicio();
+                cita.getFisioterapeuta();
+            }
+        });
+        return tratamientos;
     }
 
-    @PostMapping
+    @PostMapping("/guardar")
     public Tratamiento guardar(@RequestBody Tratamiento tratamiento) {
-
-        if (tratamiento.getCita() != null && tratamiento.getCita().getIdCita() != null) {
-            Cita cita = citaRepo.findById(tratamiento.getCita().getIdCita()).orElse(null);
-            if (cita == null || !"Activo".equalsIgnoreCase(cita.getEstado())) {
-                throw new RuntimeException("La cita no existe o está inactiva, no se puede registrar tratamiento.");
-            }
-            tratamiento.setCita(cita);
+        if (tratamiento.getCita() == null || tratamiento.getCita().getIdCita() == null) {
+            throw new RuntimeException("Debe seleccionar una cita.");
         }
+
+        Cita cita = citaRepo.findById(tratamiento.getCita().getIdCita())
+                            .orElseThrow(() -> new RuntimeException("Cita no encontrada."));
+
+        if (!"Pendiente".equalsIgnoreCase(cita.getEstado())) {
+            throw new RuntimeException("La cita no está pendiente.");
+        }
+
+        tratamiento.setCita(cita);
 
         if (tratamiento.getFechaRegistro() == null) {
             tratamiento.setFechaRegistro(LocalDate.now());
@@ -44,7 +64,13 @@ public class TratamientoController {
 
     @GetMapping("/{id}")
     public Tratamiento obtener(@PathVariable Long id) {
-        return repo.findById(id).orElse(null);
+        Tratamiento t = repo.findById(id).orElse(null);
+        if (t != null && t.getCita() != null) {
+            t.getCita().getPaciente();
+            t.getCita().getServicio();
+            t.getCita().getFisioterapeuta();
+        }
+        return t;
     }
 
     @PutMapping("/{id}")
@@ -57,4 +83,41 @@ public class TratamientoController {
     public void eliminar(@PathVariable Long id) {
         repo.deleteById(id);
     }
+
+    
+    @GetMapping("/mis-tratamientos")
+public List<Tratamiento> obtenerTratamientosUsuario(@RequestParam Long idUsuario) {
+    Usuario usuario = usuarioRepo.findById(idUsuario).orElse(null);
+
+    if (usuario == null) {
+        return repo.findAll();
+    }
+
+    if (usuario.getPaciente() != null) {
+        Long idPaciente = usuario.getPaciente().getIdPaciente();
+        List<Tratamiento> tratamientos = repo.findByCita_Paciente_IdPaciente(idPaciente);
+        tratamientos.forEach(t -> inicializarCita(t));
+        return tratamientos;
+    }
+
+    if (usuario.getFisioterapeuta() != null) {
+        Long idFisio = usuario.getFisioterapeuta().getIdFisio();
+        List<Tratamiento> tratamientos = repo.findByCita_Fisioterapeuta_IdFisio(idFisio);
+        tratamientos.forEach(t -> inicializarCita(t));
+        return tratamientos;
+    }
+
+    List<Tratamiento> tratamientos = repo.findAll();
+    tratamientos.forEach(t -> inicializarCita(t));
+    return tratamientos;
+}
+
+private void inicializarCita(Tratamiento t) {
+    if (t.getCita() != null) {
+        t.getCita().getPaciente();
+        t.getCita().getFisioterapeuta();
+        t.getCita().getServicio();
+    }
+}
+
 }

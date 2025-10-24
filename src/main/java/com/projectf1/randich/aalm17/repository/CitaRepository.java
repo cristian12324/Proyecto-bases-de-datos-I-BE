@@ -12,4 +12,7 @@ public interface CitaRepository extends JpaRepository<Cita, Long> {
   
     List<Cita> findByFisioterapeutaAndFechaAndHora(Fisioterapeuta fisioterapeuta, LocalDate fecha, String hora);
     List<Cita> findByPacienteIdPaciente(Long idPaciente);
+    List<Cita> findByPaciente_IdPaciente(Long idPaciente);
+    List<Cita> findByFisioterapeuta_IdFisio(Long idFisio);
+
 }

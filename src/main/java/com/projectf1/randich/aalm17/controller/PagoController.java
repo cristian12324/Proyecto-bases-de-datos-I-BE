@@ -23,27 +23,39 @@ public class PagoController {
         return repo.findAll();
     }
 
-    @PostMapping
-    public Pago guardar(@RequestBody Pago pago) {
+   @PostMapping
+public Pago guardar(@RequestBody Pago pago) {
 
-        if (pago.getCita() != null && pago.getCita().getIdCita() != null) {
-            Cita cita = citaRepo.findById(pago.getCita().getIdCita()).orElse(null);
-            if (cita == null) {
-                throw new RuntimeException("La cita no existe.");
-            }
-            if (!"Activo".equalsIgnoreCase(cita.getEstado())) {
-                throw new RuntimeException("No se puede pagar una cita cancelada o inactiva.");
-            }
-            // Evitar duplicados
-            List<Pago> pagosExistentes = repo.findByCitaIdCita(cita.getIdCita());
-            if (!pagosExistentes.isEmpty()) {
-                throw new RuntimeException("Ya existe un pago para esta cita.");
-            }
-            pago.setCita(cita);
+    if (pago.getCita() != null && pago.getCita().getIdCita() != null) {
+        Cita cita = citaRepo.findById(pago.getCita().getIdCita()).orElse(null);
+        if (cita == null) {
+            throw new RuntimeException("La cita no existe.");
         }
+        if (!"Pendiente".equalsIgnoreCase(cita.getEstado())) {
+            throw new RuntimeException("No se puede pagar una cita cancelada o inactiva.");
+        }
+
+        // Evitar duplicados
+        List<Pago> pagosExistentes = repo.findByCitaIdCita(cita.getIdCita());
+        if (!pagosExistentes.isEmpty()) {
+            throw new RuntimeException("Ya existe un pago para esta cita.");
+        }
+
+       
+        pago.setCita(cita);
+
+       
+        cita.setEstado("Pagada");
+        citaRepo.save(cita);
+
+        
+        pago.setEstadoPago("Completado");
 
         return repo.save(pago);
     }
+
+    return repo.save(pago);
+}
 
     @GetMapping("/{id}")
     public Pago obtener(@PathVariable Long id) {
